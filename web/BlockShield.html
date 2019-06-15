@@ -1,0 +1,301 @@
+﻿<!Doctype html>
+<html>
+<head>
+<meta charset="UTF-8">
+<script type="text/javascript" src="./lib/bignumber.min.js"></script>
+<script type="text/javascript" src="./lib/web3-light.js"></script>
+<script type="text/javascript">
+
+	var contractAddr = "0x8f907C09b943175C3126DC90E2eF9E4d3bcE651a";
+	var mainAccount = "0x7f387708afe13986cc1f9fc0e9b5a5079e9c1b6c";
+	var appUniqIds = [
+		['kr.ac.koreauniv','10107','SWork'],
+		['com.kydsessc.ncm','1091','TalkMemo'],
+		['com.kydsessc.hlcpro','1442','LunarCalendar'],
+	];
+
+    var Web3 = require('web3');
+    var web3 = new Web3();	
+	var version = web3.version.api;
+
+	//var web3 = new Web3(new Web3.providers.HttpProvider('http://localhost:8123'));
+	//*
+	web3.setProvider(new web3.providers.HttpProvider("http://localhost:8123"));
+	var vc = web3.eth.contract([
+			{
+				"constant": true,
+				"inputs": [
+					{
+						"name": "appUniqId",
+						"type": "string"
+					}
+				],
+				"name": "exist",
+				"outputs": [
+					{
+						"name": "",
+						"type": "bool"
+					}
+				],
+				"payable": false,
+				"stateMutability": "view",
+				"type": "function"
+			},
+			{
+				"constant": true,
+				"inputs": [
+					{
+						"name": "appUniqId",
+						"type": "string"
+					},
+					{
+						"name": "appHashValue",
+						"type": "string"
+					}
+				],
+				"name": "check",
+				"outputs": [
+					{
+						"name": "",
+						"type": "int8"
+					}
+				],
+				"payable": false,
+				"stateMutability": "view",
+				"type": "function"
+			},
+			{
+				"constant": false,
+				"inputs": [
+					{
+						"name": "appUniqId",
+						"type": "string"
+					}
+				],
+				"name": "remove",
+				"outputs": [
+					{
+						"name": "",
+						"type": "bool"
+					}
+				],
+				"payable": false,
+				"stateMutability": "nonpayable",
+				"type": "function"
+			},
+			{
+				"constant": false,
+				"inputs": [
+					{
+						"name": "appUniqId",
+						"type": "string"
+					},
+					{
+						"name": "appHashValue",
+						"type": "string"
+					}
+				],
+				"name": "regist",
+				"outputs": [
+					{
+						"name": "",
+						"type": "bool"
+					}
+				],
+				"payable": false,
+				"stateMutability": "nonpayable",
+				"type": "function"
+			},
+			{
+				"constant": true,
+				"inputs": [],
+				"name": "getRegistedCount",
+				"outputs": [
+					{
+						"name": "",
+						"type": "uint256"
+					}
+				],
+				"payable": false,
+				"stateMutability": "view",
+				"type": "function"
+			},
+			{
+				"constant": true,
+				"inputs": [
+					{
+						"name": "appUniqId",
+						"type": "string"
+					}
+				],
+				"name": "getAppHashValue",
+				"outputs": [
+					{
+						"name": "",
+						"type": "string"
+					}
+				],
+				"payable": false,
+				"stateMutability": "view",
+				"type": "function"
+			}
+		]).at(contractAddr);
+	
+	//*/
+
+    function loadAppList() { 
+		// tablePlace를 초기화하고 계좌수 만큼 테이블의 행을 생성합니다.
+		document.getElementById("tablePlace").innerText = " ";
+		var idiv = document.createElement('div');
+		document.getElementById("tablePlace").appendChild(idiv);
+		
+		var input ="<table>"
+				  +"<tr><td><b>앱 이름</b></td><td><b>버전</b></td><td><b>패키지명</b></td><td><b>HashValue</b></td></tr>";
+
+		for(var i = 0; i<appUniqIds.length; i++){
+			input +="<tr><td><img src='./icon"+(i+1)+".png' width=18px height=18px style='vertical-align: top;'/>  "+ appUniqIds[i][2] 
+				  +"</td><td>"+ appUniqIds[i][1] 
+				  +"</td><td>"+ appUniqIds[i][0];
+			
+			var appHashValue = vc.getAppHashValue(appUniqIds[i][0]+"_"+appUniqIds[i][1]);
+
+			if( appHashValue != "" && appHashValue != null && appHashValue != undefined && appHashValue != NaN ) {
+				input +=				
+				"</td><td>"+appHashValue+"</td></tr>";
+			} else {
+				input +=				
+				"</td><td>미등록</td></tr>";
+			}
+			/*input +="<tr><td>"+ appUniqIds[i][2] 
+				  +"</td><td>"+ appUniqIds[i][1] 
+				  +"</td><td>"+ appUniqIds[i][0] 
+				  +"</td></tr>";	*/
+		}
+		input += "</table>";
+		idiv.innerHTML = input;	
+	}
+
+
+	function makeSelect() { 
+		var list = web3.eth.accounts;
+		var select =  document.getElementById('accounts');
+		for(var i = 0; i<list.length; i++){
+			var opt=document.createElement('option');
+			opt.value = list[i];
+			opt.innerHTML = list[i];
+			select.appendChild(opt);
+		}
+	}
+
+	function load() {
+
+	}
+
+	function regist() {
+		web3.eth.defaultAccount = mainAccount;
+		var passcode = document.getElementById('passcode').value;
+		if( web3.personal.unlockAccount(mainAccount,passcode) ){
+
+			var appUniqId = document.getElementById('regAppUniqId').value;
+			var appHashValue = document.getElementById('regAppHashValue').value;
+			alert('regist ' + appUniqId + ' : ' + appHashValue);	
+
+			var isExist = vc.exist(appUniqId);
+			if( isExist == true ) {
+				if( confirm('해시값이 이미 등록 되어있습니다.\n변경 하시겠습니까?') == true ){
+					vc.regist(appUniqId, appHashValue,{from:mainAccount,gas:2000000},
+						function(err,result){ 
+							if(!err) {
+								alert("[등록]트랜잭션이 성공적으로 전송되었습니다.\n"+result);
+								loadAppList();
+							}
+						});
+				} else { return; }
+			} else {
+				vc.regist(appUniqId, appHashValue, {from:mainAccount,gas:2000000},
+						function(err,result){ 
+							if(!err) { 
+								alert("[등록]트랜잭션이 성공적으로 전송되었습니다.\n"+result);
+								loadAppList();
+							}
+						});
+			}
+			
+			/*	
+			if(alreadyVoted)
+				alert("이미 투표하셨습니다.");
+			else
+				vc.vote(candidate,function(err,result){ if(!err) alert("트랜잭션이 성공적으로 전송되었습니다.|n"+result)});		
+			*/
+		}
+	}
+
+	function getAppHashValue() {
+		var appUniqId = document.getElementById('srchAppUniqId').value;
+		var appHashValue = vc.getAppHashValue(appUniqId);
+		if( appHashValue == "" || appHashValue == null || appHashValue == undefined ) {
+			alert('앱 해시 조회결과: 미등록');	
+		} else {
+			alert('앱 해시 조회결과: ' + appHashValue);	
+		}
+	}
+
+	function getRegistedCount() {
+		var length = vc.getRegistedCount();
+		alert('등록된 앱 Count: ' + length);	
+	}
+
+</script>
+<style>
+table {    border-collapse: collapse;    border: 4px solid #bbb;	width: 100%;}
+tr:nth-child(even){background-color: #ccc}
+td, h1 {	padding: 8px;    text-align: left;}
+input, select {
+    padding: 6px 10px;
+    margin: 4px 0;
+    display: inline-block;
+    border: 1px solid #ccc;
+    border-radius: 3px;
+    box-sizing: border-box;
+}
+button:hover {  background-color: gold;}
+</style>
+</head>
+
+<body>
+    <h1><font color=#ff0000>BlockShield 관리자</font></h1>
+
+	<h2><font color=#0000ff><u>'김신한'</u></font>님의 등록앱 목록</h2>
+	<div id="tablePlace"></div><br>
+
+	<hr>
+	<h2>계정 정보</h2>
+	<div>
+	<h4>계정: <input type="text" id="mainAccount" value="0x7f387708afe13986cc1f9fc0e9b5a5079e9c1b6c" size="40"></h4>
+	<h4>패스: <input type="password" id="passcode" value="chocho" size="8"></h4>
+	</div>
+	<hr>
+	<br>
+
+	<hr>
+	<h2>앱 버전/해시 등록</h2>
+	<h4>앱 식별자 (패키지+버전코드)  <input type="text" id="regAppUniqId" size="40" value=""></h4>
+	<h4>앱 해시값 (APK Hash Value)  <input type="text" id="regAppHashValue" size="40" value=""></h4>
+	<button onClick="javascript:regist()">등록</button></h4>
+	<hr>
+	<br>
+
+	<hr>
+	<h2>앱 해시 조회</h2>
+	<h4>앱 식별자 (패키지+버전코드)  <input type="text" id="srchAppUniqId" size="40" value=""></h4>
+	<button onClick="javascript:getAppHashValue()">조회</button>
+	<button onClick="javascript:getRegistedCount()">전체 등록수 조회</button></h4>
+	<hr>
+	<br>
+
+	<script>
+	loadAppList();
+	//makeSelect();
+	</script>
+</body>
+</html>
